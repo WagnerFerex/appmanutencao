@@ -12,6 +12,7 @@ object fClienteServidor: TfClienteServidor
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object ProgressBar: TProgressBar
@@ -22,7 +23,6 @@ object fClienteServidor: TfClienteServidor
     Height = 17
     Align = alBottom
     TabOrder = 0
-    ExplicitWidth = 347
   end
   object btEnviarSemErros: TButton
     Left = 56

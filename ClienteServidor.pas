@@ -24,6 +24,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btEnviarSemErrosClick(Sender: TObject);
     procedure btEnviarComErrosClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     FPath: String;
     FServidor: TServidor;
@@ -51,19 +52,24 @@ var
   i: Integer;
 begin
   cds := InitDataset;
-  for i := 0 to QTD_ARQUIVOS_ENVIAR do
-  begin
-    cds.Append;
-    TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
-    cds.Post;
+  try
 
-    {$REGION Simulação de erro, não alterar}
-    if i = (QTD_ARQUIVOS_ENVIAR/2) then
-      FServidor.SalvarArquivos(NULL);
-    {$ENDREGION}
+    for i := 0 to QTD_ARQUIVOS_ENVIAR do
+    begin
+      cds.Append;
+      TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
+      cds.Post;
+
+      {$REGION Simulação de erro, não alterar}
+      if i = (QTD_ARQUIVOS_ENVIAR/2) then
+        FServidor.SalvarArquivos(NULL);
+      {$ENDREGION}
+    end;
+
+    FServidor.SalvarArquivos(cds.Data);
+  finally
+    FreeAndNil(cds);
   end;
-
-  FServidor.SalvarArquivos(cds.Data);
 end;
 
 procedure TfClienteServidor.btEnviarSemErrosClick(Sender: TObject);
@@ -72,14 +78,18 @@ var
   i: Integer;
 begin
   cds := InitDataset;
-  for i := 0 to QTD_ARQUIVOS_ENVIAR do
-  begin
-    cds.Append;
-    TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
-    cds.Post;
-  end;
+  try
+    for i := 0 to QTD_ARQUIVOS_ENVIAR do
+    begin
+      cds.Append;
+      TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
+      cds.Post;
+    end;
 
-  FServidor.SalvarArquivos(cds.Data);
+    FServidor.SalvarArquivos(cds.Data);
+  finally
+    FreeAndNil(cds);
+  end;
 end;
 
 procedure TfClienteServidor.FormCreate(Sender: TObject);
@@ -87,6 +97,11 @@ begin
   inherited;
   FPath := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'pdf.pdf';
   FServidor := TServidor.Create;
+end;
+
+procedure TfClienteServidor.FormDestroy(Sender: TObject);
+begin
+  FreeAndNil(FServidor);
 end;
 
 function TfClienteServidor.InitDataset: TClientDataset;
@@ -111,23 +126,27 @@ begin
   Result := False;
   try
     cds := TClientDataset.Create(nil);
-    cds.Data := AData;
+    try
+      cds.Data := AData;
 
-    {$REGION Simulação de erro, não alterar}
-    if cds.RecordCount = 0 then
-      Exit;
-    {$ENDREGION}
+      {$REGION Simulação de erro, não alterar}
+      if cds.RecordCount = 0 then
+        Exit;
+      {$ENDREGION}
 
-    cds.First;
+      cds.First;
 
-    while not cds.Eof do
-    begin
-      FileName := FPath + cds.RecNo.ToString + '.pdf';
-      if TFile.Exists(FileName) then
-        TFile.Delete(FileName);
+      while not cds.Eof do
+      begin
+        FileName := FPath + cds.RecNo.ToString + '.pdf';
+        if TFile.Exists(FileName) then
+          TFile.Delete(FileName);
 
-      TBlobField(cds.FieldByName('Arquivo')).SaveToFile(FileName);
-      cds.Next;
+        TBlobField(cds.FieldByName('Arquivo')).SaveToFile(FileName);
+        cds.Next;
+      end;
+    finally
+       FreeAndNil(cds);
     end;
 
     Result := True;
