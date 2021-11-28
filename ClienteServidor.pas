@@ -9,7 +9,7 @@ uses
 type
   TServidor = class
   private
-    FPath: AnsiString;
+    FPath: String;
   public
     constructor Create;
     //Tipo do parâmetro não pode ser alterado
@@ -25,7 +25,7 @@ type
     procedure btEnviarSemErrosClick(Sender: TObject);
     procedure btEnviarComErrosClick(Sender: TObject);
   private
-    FPath: AnsiString;
+    FPath: String;
     FServidor: TServidor;
 
     function InitDataset: TClientDataset;
@@ -85,7 +85,7 @@ end;
 procedure TfClienteServidor.FormCreate(Sender: TObject);
 begin
   inherited;
-  FPath := IncludeTrailingBackslash(ExtractFilePath(ParamStr(0))) + 'pdf.pdf';
+  FPath := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'pdf.pdf';
   FServidor := TServidor.Create;
 end;
 
@@ -108,6 +108,7 @@ var
   cds: TClientDataSet;
   FileName: string;
 begin
+  Result := False;
   try
     cds := TClientDataset.Create(nil);
     cds.Data := AData;
@@ -131,7 +132,6 @@ begin
 
     Result := True;
   except
-    Result := False;
     raise;
   end;
 end;
