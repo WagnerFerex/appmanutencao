@@ -29,6 +29,7 @@ object fMain: TfMain
     Height = 25
     Caption = 'Threads'
     TabOrder = 1
+    OnClick = btThreadsClick
   end
   object btStreams: TButton
     Left = 64

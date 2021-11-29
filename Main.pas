@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Threads;
 
 type
   TException = class
@@ -22,6 +22,7 @@ type
     btStreams: TButton;
     procedure btDatasetLoopClick(Sender: TObject);
     procedure btStreamsClick(Sender: TObject);
+    procedure btThreadsClick(Sender: TObject);
   private
   public
   end;
@@ -47,7 +48,12 @@ begin
   fClienteServidor.Show;
 end;
 
-{ TException }
+procedure TfMain.btThreadsClick(Sender: TObject);
+begin
+  fThreads.Show;
+end;
+
+ { TException }
 
 constructor TException.Create;
 begin
@@ -58,16 +64,7 @@ end;
 procedure TException.GravarLog(Value: String);
 var
   txtLog : TextFile;
-begin
-  AssignFile(txtLog, FLogFile);
-  if FileExists(FLogFile) then
-    Append(txtLog)
-  else
-    Rewrite(txtLog);
-  Writeln(txtLog, FormatDateTime('dd/mm/YY hh:nn:ss - ', Now) + Value);
-  CloseFile(txtLog);
 end;
-
 procedure TException.TrataException(Sender: TObject; E: Exception);
 begin
   GravarLog('===========================================');
