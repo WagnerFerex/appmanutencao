@@ -31,12 +31,16 @@ procedure TfDatasetLoop.btDeletarParesClick(Sender: TObject);
 begin
   ClientDataSet.First;
 
+  // Defeito 1: Ao deletar um numero par, o proximo registro era pulado por
+  // conta de ainda executar a procedure .Next; Para corrigir foi adicionado
+  // um else, pois assim somente se não for par que o "ponteiro" passaria
+  // para o proximo registro
   while not ClientDataSet.Eof do
   begin
     if ClientDataSet.FieldByName('Field2').AsInteger mod 2 = 0 then
-      ClientDataSet.Delete;
-
-    ClientDataSet.Next;
+      ClientDataSet.Delete
+    else
+      ClientDataSet.Next;
   end;
 end;
 

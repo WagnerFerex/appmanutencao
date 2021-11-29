@@ -14,6 +14,7 @@ type
     constructor Create;
     //Tipo do parâmetro não pode ser alterado
     function SalvarArquivos(AData: OleVariant; ProgressBar: TProgressBar): Boolean;
+    procedure RollBack;
   end;
 
   TfClienteServidor = class(TForm)
@@ -51,13 +52,16 @@ var
   cds: TClientDataset;
   i: Integer;
 begin
+  // Defeito 3: Ao realizar o envio dos arquivos ao servidor não havia tratamento
+  // da exceção gerada, Para corrigir foi implementado um metodo de rollback que
+  // lista e apaga todos os arquivos da pasta onde estavam salvos
   cds := InitDataset;
   try
 
     for i := 0 to QTD_ARQUIVOS_ENVIAR do
     begin
       cds.Append;
-      TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
+      cds.FieldByName('Arquivo').AsString := FPath;
       cds.Post;
 
       {$REGION Simulação de erro, não alterar}
@@ -77,12 +81,18 @@ var
   cds: TClientDataset;
   i: Integer;
 begin
+  // Defeito 2: o Windows tem por padrão um limite de memoria em que permite
+  // que a aplicação possa consumir, por conta desta rotina está carregando na
+  // memoria todos os arquivos .pdf (e por sinal este pdf tem quase 50 mb) isto
+  // isto está ultrapassando o limite permitido, A solução seria colocar apenas
+  // o caminho do arquivo, e no momento do envio ao servidor, o arquivo é lido e
+  // enviado individualmente. Mantendo assim o baixo consumo de memoria.
   cds := InitDataset;
   try
     for i := 0 to QTD_ARQUIVOS_ENVIAR do
     begin
       cds.Append;
-      TBlobField(cds.FieldByName('Arquivo')).LoadFromFile(FPath);
+      cds.FieldByName('Arquivo').Value := FPath;
       cds.Post;
     end;
 
@@ -118,37 +128,59 @@ begin
   FPath := ExtractFilePath(ParamStr(0)) + 'Servidor\';
 end;
 
+procedure TServidor.RollBack;
+var
+  SR: TSearchRec;
+  I: integer;
+begin
+  I := FindFirst(FPath +'*.*', faAnyFile, SR);
+  while I = 0 do
+  begin
+    if ((SR.Attr and faDirectory) = 0) then
+    begin
+      if not DeleteFile(FPath + SR.Name) then
+        raise Exception.Create('Não foi possível excluir ' + FPath + SR.Name);
+    end;
+    I := FindNext(SR);
+  end;
+end;
+
 function TServidor.SalvarArquivos(AData: OleVariant; ProgressBar: TProgressBar): Boolean;
 var
   cds: TClientDataSet;
   FileName: string;
 begin
   Result := False;
-  cds := TClientDataset.Create(nil);
   try
-    cds.Data := AData;
-    ProgressBar.Max := cds.RecordCount;
+    cds := TClientDataset.Create(nil);
+    try
+      cds.Data := AData;
+      ProgressBar.Max := cds.RecordCount;
 
-    {$REGION Simulação de erro, não alterar}
-    if cds.RecordCount = 0 then
-      Exit;
-    {$ENDREGION}
+      {$REGION Simulação de erro, não alterar}
+      if cds.RecordCount = 0 then
+        Exit;
+      {$ENDREGION}
 
-    cds.First;
-    ProgressBar.Step := 1;
+      cds.First;
+      ProgressBar.Step := 1;
 
-    while not cds.Eof do
-    begin
-      FileName := FPath + cds.RecNo.ToString + '.pdf';
-      if TFile.Exists(FileName) then
-        TFile.Delete(FileName);
+      while not cds.Eof do
+      begin
+        FileName := FPath + cds.RecNo.ToString + '.pdf';
+        if TFile.Exists(FileName) then
+          TFile.Delete(FileName);
 
-      TBlobField(cds.FieldByName('Arquivo')).SaveToFile(FileName);
-      ProgressBar.StepIt;
-      cds.Next;
+        CopyFile(PChar(cds.FieldByName('Arquivo').AsString), PChar(FileName), True);
+        ProgressBar.StepIt;
+        cds.Next;
+      end;
+    finally
+       FreeAndNil(cds);
     end;
-  finally
-     FreeAndNil(cds);
+  except
+    RollBack;
+    raise;
   end;
 
   Result := True;
