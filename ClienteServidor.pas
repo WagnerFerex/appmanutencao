@@ -13,7 +13,7 @@ type
   public
     constructor Create;
     //Tipo do parâmetro não pode ser alterado
-    function SalvarArquivos(AData: OleVariant): Boolean;
+    function SalvarArquivos(AData: OleVariant; ProgressBar: TProgressBar): Boolean;
   end;
 
   TfClienteServidor = class(TForm)
@@ -62,11 +62,11 @@ begin
 
       {$REGION Simulação de erro, não alterar}
       if i = (QTD_ARQUIVOS_ENVIAR/2) then
-        FServidor.SalvarArquivos(NULL);
+        FServidor.SalvarArquivos(NULL, ProgressBar);
       {$ENDREGION}
     end;
 
-    FServidor.SalvarArquivos(cds.Data);
+    FServidor.SalvarArquivos(cds.Data, ProgressBar);
   finally
     FreeAndNil(cds);
   end;
@@ -86,7 +86,7 @@ begin
       cds.Post;
     end;
 
-    FServidor.SalvarArquivos(cds.Data);
+    FServidor.SalvarArquivos(cds.Data, ProgressBar);
   finally
     FreeAndNil(cds);
   end;
@@ -118,41 +118,40 @@ begin
   FPath := ExtractFilePath(ParamStr(0)) + 'Servidor\';
 end;
 
-function TServidor.SalvarArquivos(AData: OleVariant): Boolean;
+function TServidor.SalvarArquivos(AData: OleVariant; ProgressBar: TProgressBar): Boolean;
 var
   cds: TClientDataSet;
   FileName: string;
 begin
   Result := False;
+  cds := TClientDataset.Create(nil);
   try
-    cds := TClientDataset.Create(nil);
-    try
-      cds.Data := AData;
+    cds.Data := AData;
+    ProgressBar.Max := cds.RecordCount;
 
-      {$REGION Simulação de erro, não alterar}
-      if cds.RecordCount = 0 then
-        Exit;
-      {$ENDREGION}
+    {$REGION Simulação de erro, não alterar}
+    if cds.RecordCount = 0 then
+      Exit;
+    {$ENDREGION}
 
-      cds.First;
+    cds.First;
+    ProgressBar.Step := 1;
 
-      while not cds.Eof do
-      begin
-        FileName := FPath + cds.RecNo.ToString + '.pdf';
-        if TFile.Exists(FileName) then
-          TFile.Delete(FileName);
+    while not cds.Eof do
+    begin
+      FileName := FPath + cds.RecNo.ToString + '.pdf';
+      if TFile.Exists(FileName) then
+        TFile.Delete(FileName);
 
-        TBlobField(cds.FieldByName('Arquivo')).SaveToFile(FileName);
-        cds.Next;
-      end;
-    finally
-       FreeAndNil(cds);
+      TBlobField(cds.FieldByName('Arquivo')).SaveToFile(FileName);
+      ProgressBar.StepIt;
+      cds.Next;
     end;
-
-    Result := True;
-  except
-    raise;
+  finally
+     FreeAndNil(cds);
   end;
+
+  Result := True;
 end;
 
 end.

@@ -1,4 +1,7 @@
 /*.exe
 /*.local
 /Win32
+/Servidor
 /__history
+/__recovery
+
