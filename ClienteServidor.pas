@@ -26,6 +26,7 @@ type
     procedure btEnviarSemErrosClick(Sender: TObject);
     procedure btEnviarComErrosClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btEnviarParaleloClick(Sender: TObject);
   private
     FPath: String;
     FServidor: TServidor;
@@ -74,6 +75,35 @@ begin
   finally
     FreeAndNil(cds);
   end;
+end;
+
+procedure TfClienteServidor.btEnviarParaleloClick(Sender: TObject);
+var
+  cds: TClientDataset;
+  i: Integer;
+  myFile: file of Byte;
+begin
+
+  cds := InitDataset;
+  try
+    for i := 0 to QTD_ARQUIVOS_ENVIAR do
+    begin
+      cds.Append;
+      cds.FieldByName('Arquivo').Value := FPath;
+      cds.Post;
+    end;
+
+    TThread.CreateAnonymousThread(procedure
+    begin
+      FServidor.SalvarArquivos(cds.Data, ProgressBar);
+    end).Start;
+
+    // gera um gargalo para não sobrecarregar com todas a threads ao mesmo tempo
+    Sleep(400);
+  finally
+    FreeAndNil(cds);
+  end;
+
 end;
 
 procedure TfClienteServidor.btEnviarSemErrosClick(Sender: TObject);

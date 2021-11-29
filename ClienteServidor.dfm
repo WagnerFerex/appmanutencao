@@ -49,5 +49,6 @@ object fClienteServidor: TfClienteServidor
     Height = 25
     Caption = 'Enviar paralelo'
     TabOrder = 3
+    OnClick = btEnviarParaleloClick
   end
 end
