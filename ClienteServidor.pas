@@ -156,6 +156,7 @@ end;
 constructor TServidor.Create;
 begin
   FPath := ExtractFilePath(ParamStr(0)) + 'Servidor\';
+  if not DirectoryExists(FPath) then ForceDirectories(FPath);
 end;
 
 procedure TServidor.RollBack;
